@@ -7,45 +7,70 @@ How to Build
 ------------
 
 Get dependencies `SDL2` and `SDL2_ttf`
+
 `git clone https://github.com/aderosier/sdl2-tetris.git sdl2-tetris`
+
 `cd sdl2-tetris`
+
 `make`
 
 Controls
 --------
 
 Arrow left/right - Move left/right
+
 Arrow up, Z, X - Rotate
+
 Arrow down - Speed up
+
 Space - Drop
+
 Shift - Hold
+
 Enter - Pause
 
 TODO
 ----
 
 Guideline checklist http://tetris.wikia.com/wiki/Tetris_Guideline
+
 [DONE] Playfield size
+
 [DONE] Tetromino colors
+
 [DONE] Tetromino start locations
-[TODO] The tetrominoes spawn horizontally and with their flat side pointed down. 
+
+[TODO] The tetrominoes spawn horizontally and with their flat side pointed down
+
 [TODO] Super Rotation System http://tetris.wikia.com/wiki/SRS
+
 [TODO] Lock delay http://tetris.wikia.com/wiki/Infinity
+
 [TODO] Standard mappings for computer keyboards
+
 [TODO] http://tetris.wikia.com/wiki/Random_Generator
+
 [DONE] Hold piece
+
 [DONE] Ghost piece
+
 [DONE] Designated soft drop speed
-[DONE] Player may only level up by clearing lines or performing T-Spin. Required lines depends in the game.
-[TODO] The player tops out when a piece is spawned overlapping at least one block, or a piece locks completely above the visible portion of the playfield. 
+
+[DONE] Player may only level up by clearing lines or performing T-Spin
+
+[TODO] The player tops out when a piece is spawned overlapping at least one block
+
 
 [DONE] Display of next-coming tetrominoes
+
 [TODO] T-spins
+
 [TODO] Rewarding of back to back chains
+
 [TODO] Delayed Auto Shift http://tetris.wikia.com/wiki/DAS
 
 Things I'm not bothering with
-- Terms used in the user manual: "Tetriminos" not "tetrominoes" nor "tetrads" nor "pieces", letter names not "square" nor "stick", etc.
-- The game must use a variant of Roger Dean's Tetris logo, although this was true from around 2000 - before the guidelines emerged.
+- "Tetriminos" not "pieces", letter names not "square" nor "stick", etc
+- The game must use a variant of Roger Dean's Tetris logo
 - Game must include a song called Korobeiniki. (Guideline 2005~)
-- Game should include the songs Katjusha, or Kalinka. 
+- Game should include the songs Katjusha, or Kalinka
