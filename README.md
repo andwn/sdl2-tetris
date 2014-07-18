@@ -25,27 +25,21 @@ TODO
 ----
 
 Guideline checklist http://tetris.wikia.com/wiki/Tetris_Guideline
->[DONE] Playfield size
->[DONE] Tetromino colors
->[DONE] Tetromino start locations
->[TODO] The tetrominoes spawn horizontally and with their flat side pointed down
->[TODO] Super Rotation System http://tetris.wikia.com/wiki/SRS
->[TODO] Lock delay http://tetris.wikia.com/wiki/Infinity
->[TODO] Standard mappings for computer keyboards
->[TODO] http://tetris.wikia.com/wiki/Random_Generator
->[DONE] Hold piece
->[DONE] Ghost piece
->[DONE] Designated soft drop speed
->[DONE] Player may only level up by clearing lines or performing T-Spin
->[TODO] The player tops out when a piece is spawned overlapping at least one block
->
->[DONE] Display of next-coming tetrominoes
->[TODO] T-spins
->[TODO] Rewarding of back to back chains
->[TODO] Delayed Auto Shift http://tetris.wikia.com/wiki/DAS
+- [x] Playfield size
+- [x] Tetromino colors
+- [x] Tetromino start locations
+- [ ] The tetrominoes spawn horizontally and with their flat side pointed down
+- [ ] Super Rotation System http://tetris.wikia.com/wiki/SRS
+- [ ] Lock delay http://tetris.wikia.com/wiki/Infinity
+- [ ] Standard mappings for computer keyboards
+- [ ] http://tetris.wikia.com/wiki/Random_Generator
+- [x] Hold piece
+- [x] Ghost piece
+- [x] Designated soft drop speed
+- [x] Player may only level up by clearing lines or performing T-Spin
+- [ ] The player tops out when a piece is spawned overlapping at least one block
 
-Things I'm not bothering with
-- "Tetriminos" not "pieces", letter names not "square" nor "stick", etc
-- The game must use a variant of Roger Dean's Tetris logo
-- Game must include a song called Korobeiniki. (Guideline 2005~)
-- Game should include the songs Katjusha, or Kalinka
+- [x] Display of next-coming tetrominoes
+- [ ] T-spins
+- [ ] Rewarding of back to back chains
+- [ ] Delayed Auto Shift http://tetris.wikia.com/wiki/DAS
