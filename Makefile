@@ -1,8 +1,8 @@
 CC=gcc
 #CC=i686-w64-mingw32-gcc
 #CC=clang
-CFLAGS=-std=c99 -O2 #-W -Wall -pedantic 
-LIBS=-lSDL2 -lSDL2_image -lSDL2_ttf
+CFLAGS=-std=c99 -O2
+LIBS=-lSDL2 -lSDL2_ttf
 OBJS=tetris.o input.o
 OUTPUT=tetris
 

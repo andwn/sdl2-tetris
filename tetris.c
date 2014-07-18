@@ -37,21 +37,21 @@ int text_count = 0;
 FILE *logfile;
 
 // PieceDB[type][flip]
-Uint16 PieceDB[7][4] = { // Square, Line, L, J, S, Z, T
+Uint16 PieceDB[7][4] = { // O, I, L, J, S, Z, T
 	{0b0000011001100000,0b0000011001100000,0b0000011001100000,0b0000011001100000},
 	{0b0100010001000100,0b0000111100000000,0b0010001000100010,0b0000000011110000},
+	{0b0110010001000000,0b0000111000100000,0b0100010011000000,0b1000111000000000},
 	{0b0100010001100000,0b0000111010000000,0b1100010001000000,0b0010111000000000},
-	{0b0100010011000000,0b0000111000100000,0b0110010001000000,0b1000111000000000},
-	{0b0100110010000000,0b1100011000000000,0b0010011001000000,0b0000110001100000},
-	{0b1000110001000000,0b0110110000000000,0b0100011000100000,0b0000011011000000},
-	{0b0000111001000000,0b0100110001000000,0b0100111000000000,0b0100011001000000}
+	{0b0110110000000000,0b0100011000100000,0b0000011011000000,0b1000110001000000},
+	{0b1100011000000000,0b0010011001000000,0b0000110001100000,0b0100110010000000},
+	{0b0100111000000000,0b0100011001000000,0b0000111001000000,0b0100110001000000}
 };
 
 SDL_Color PieceColor[8] = {
-	{ 0xFF, 0xFF, 0x00, 0xFF }, // Square - Yellow
-	{ 0x00, 0xFF, 0xFF, 0xFF }, // Line - Turquoise
-	{ 0xFF, 0xA0, 0x00, 0xFF }, // L - Orange
+	{ 0xFF, 0xFF, 0x00, 0xFF }, // O - Yellow
+	{ 0x00, 0xFF, 0xFF, 0xFF }, // I - Cyan
 	{ 0x00, 0x00, 0xFF, 0xFF }, // J - Blue
+	{ 0xFF, 0xA0, 0x00, 0xFF }, // L - Orange
 	{ 0x00, 0xFF, 0x00, 0xFF }, // S - Green
 	{ 0xFF, 0x00, 0x00, 0xFF }, // Z - Red
 	{ 0xA0, 0x00, 0xFF, 0xFF }, // T - Purple
@@ -132,6 +132,8 @@ void Initialize() {
 	}
 	piece.type = rand() % 7;
 	piece.flip = 0;
+	piece.y = -2;
+	piece.x = 3;
 	for(int i = 0; i < 5; i++) {
 		queue[i].type = rand() % 7;
 		queue[i].flip = 0;
@@ -242,7 +244,7 @@ bool ValidatePiece(Piece p) {
 	for(int i = 0; i < 4; i++) {
 		for(int j = 0; j < 4; j++) {
 			int x = p.x + i, y = p.y + j;
-			if(PieceDB[p.type][p.flip]&(1<<(i+j*4))) {
+			if(PieceDB[p.type][p.flip]&(0x8000>>(i+j*4))) {
 				if (x < 0 || x >= STAGE_W || y >= STAGE_H) return false;
 				if (y >= 0 && stage[x][y] > 0) return false;
 			}
@@ -295,7 +297,7 @@ Piece DropShadow(Piece p) {
 void LockPiece() {
 	for(int i = 0; i < 4; i++) {
 		for(int j = 0; j < 4; j++) {
-			if(PieceDB[piece.type][piece.flip]&(1<<(i+j*4))) {
+			if(PieceDB[piece.type][piece.flip]&(0x8000>>(i+j*4))) {
 				stage[piece.x+i][piece.y+j] = piece.type+1;
 			}
 		}
@@ -325,6 +327,7 @@ void LockPiece() {
 	}
 	NextPiece();
 }
+
 void ResetSpeed() {
 	if (level <= 5) blockSpeed = INITIAL_SPEED - (level * 5);
 	else if (level <= 10) blockSpeed = INITIAL_SPEED - (level * 4) - 5;
@@ -332,6 +335,7 @@ void ResetSpeed() {
 	else if (level <= 20) blockSpeed = INITIAL_SPEED - (level * 2) - 15;
 	else blockSpeed = INITIAL_SPEED - level - 20;
 }
+
 void ClearRow(int row) {
 	for(int i = row; i > 0; i--) {
 		for(int j = 0; j < STAGE_W; j++) {
@@ -340,9 +344,12 @@ void ClearRow(int row) {
 	}
 	for(int j = 0; j < STAGE_W; j++) stage[0][j] = 0;
 }
+
 // Shift to the next block in the queue
 void NextPiece() {
 	piece = queue[0];
+	piece.y = -2;
+	piece.x = 3;
 	for(int i = 0; i < 4; i++) queue[i] = queue[i+1];
 	// Lets make sure we don't get the same piece 6 times in a row
 	while(queue[4].type == lastBlock) queue[4].type = rand() % 7;
@@ -351,6 +358,7 @@ void NextPiece() {
 	holded = false;
 	if(!ValidatePiece(piece)) GameOver();
 }
+
 void GameOver() {
 	//exit(0);
 }
@@ -361,7 +369,8 @@ void DrawPiece(Piece p, int x, int y, bool shadow) {
 		PieceColor[c].g, PieceColor[c].b, PieceColor[c].a);
 	for(int i = 0; i < 4; i++) {
 		for(int j = 0; j < 4; j++) {
-			if(PieceDB[p.type][p.flip]&(1<<(i+j*4))) {
+			if(PieceDB[p.type][p.flip]&(0x8000>>(i+j*4))) {
+				if(p.y + j < 0) continue;
 				DrawRectFill(x + i * BLOCK_SIZE + 1, y + j * BLOCK_SIZE + 1, 
 					BLOCK_SIZE - 2, BLOCK_SIZE - 2);
 			}
