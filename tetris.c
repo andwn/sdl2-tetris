@@ -103,12 +103,16 @@ int main(int argc, char *argv[]) {
 void FillBag() {
 	Uint8 pool[7] = { 0, 1, 2, 3, 4, 5, 6 };
 	for(int i = 0; i < 7; i++) {
-		randomBag[i] = pool[rand() % (7 - i)];
-		for(int j = randomBag[i]; j < 6; j++) {
+		int j = rand() % (7 - i);
+		randomBag[i] = pool[j];
+		for(; j < 6; j++) {
 			pool[j] = pool[j+1];
 		}
 	}
 	bagCount = 0;
+	log_msgf(TRACE, "FillBag: %hhu, %hhu, %hhu, %hhu, %hhu, %hhu, %hhu\n",
+		randomBag[0], randomBag[1], randomBag[2], randomBag[3], 
+		randomBag[4], randomBag[5], randomBag[6]);
 }
 
 void Initialize() {
