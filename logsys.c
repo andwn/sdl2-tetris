@@ -2,7 +2,7 @@
 
 #include <stdio.h>
 
-int logLevel = INFO;
+int logLevel = TRACE;
 
 FILE *logfile;
 
