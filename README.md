@@ -31,9 +31,8 @@ Game Mechanics:
 - [x] Tetrominos start at middle-left, top row (-2)
 - [ ] The tetrominos spawn horizontally and with their flat side pointed down
 - [x] Super Rotation System http://tetris.wikia.com/wiki/SRS
-- [ ] Wall kicks/floor kicks
+- [x] Wall kicks/floor kicks
 - [x] Lock delay http://tetris.wikia.com/wiki/Infinity
-- [ ] Standard mappings for computer keyboards
 - [x] "Random Bag" system http://tetris.wikia.com/wiki/Random_Generator
 - [x] Hold piece
 - [x] Ghost piece
