@@ -24,22 +24,28 @@ Controls
 TODO
 ----
 
-Guideline checklist http://tetris.wikia.com/wiki/Tetris_Guideline
-- [x] Playfield size
-- [x] Tetromino colors
-- [x] Tetromino start locations
-- [ ] The tetrominoes spawn horizontally and with their flat side pointed down
-- [ ] Super Rotation System http://tetris.wikia.com/wiki/SRS
+Game Mechanics:
+- [x] Playfield size 10x22, top 2 rows not visible
+- [x] Tetromino colors match guidelines
+- [x] Tetrominos start at middle-left, top row (-2)
+- [ ] The tetrominos spawn horizontally and with their flat side pointed down
+- [x] Super Rotation System http://tetris.wikia.com/wiki/SRS
+- [ ] Wall kicks/floor kicks
 - [ ] Lock delay http://tetris.wikia.com/wiki/Infinity
 - [ ] Standard mappings for computer keyboards
-- [ ] http://tetris.wikia.com/wiki/Random_Generator
+- [x] "Random Bag" system http://tetris.wikia.com/wiki/Random_Generator
 - [x] Hold piece
 - [x] Ghost piece
 - [x] Designated soft drop speed
 - [x] Player may only level up by clearing lines or performing T-Spin
 - [ ] The player tops out when a piece is spawned overlapping at least one block
-
-- [x] Display of next-coming tetrominoes
+- [x] Display of next-coming tetrominos
 - [ ] T-spins
 - [ ] Rewarding of back to back chains
 - [ ] Delayed Auto Shift http://tetris.wikia.com/wiki/DAS
+
+Code Quality:
+- [ ] More easily understandable block layout for tetrominos
+- [ ] Consistent naming convention
+- [x] Split generic stuff into modules
+- [ ] Explain what each function does
