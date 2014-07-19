@@ -132,17 +132,24 @@ void Initialize() {
 
 // Move to the left if possible
 void MoveLeft() {
-	piece.x--;
-	if(!ValidatePiece(piece)) piece.x++;
-	// Reset timer if next fall will lock
-	if(CheckLock(piece)) blockTime = 0;
+	Piece p = piece;
+	p.x--;
+	if(ValidatePiece(p)) {
+		piece = p;
+		// Reset timer if next fall will lock
+		if(CheckLock(p)) blockTime = 0;
+	}
 }
 
 // Move to the right if possible
 void MoveRight() {
-	piece.x++;
-	if(!ValidatePiece(piece)) piece.x--;
-	if(CheckLock(piece)) blockTime = 0;
+	Piece p = piece;
+	p.x++;
+	if(ValidatePiece(p)) {
+		piece = p;
+		// Reset timer if next fall will lock
+		if(CheckLock(piece)) blockTime = 0;
+	}
 }
 
 // Checks if the piece is overlapping with anything
@@ -159,19 +166,40 @@ bool ValidatePiece(Piece p) {
 	return true;
 }
 
+bool WallKick(Piece *p) {
+	p->x -= 1;
+	if(ValidatePiece(*p)) return true;
+	p->x += 2;
+	if(ValidatePiece(*p)) return true;
+	p->x -= 1;
+	p->y -= 1;
+	if(ValidatePiece(*p)) return true;
+	p->y += 1;
+	return false;
+}
+
 // Rotate to the left if possible
 void RotateLeft() {
-	if(piece.flip == 0) piece.flip = 3; else piece.flip--;
-	if(!ValidatePiece(piece)) RotateRight();
-	// Reset timer if next fall will lock
-	if(CheckLock(piece)) blockTime = 0;
+	Piece p = piece;
+	if(p.flip == 0) p.flip = 3; else p.flip--;
+	// If rotating makes the piece overlap, try to wall kick
+	if(ValidatePiece(p) || WallKick(&p)) {
+		piece = p;
+		// Reset timer if next fall will lock
+		if(CheckLock(piece)) blockTime = 0;
+	}
 }
 
 // Rotate to the right if possible
 void RotateRight() {
-	if(piece.flip == 3) piece.flip = 0; else piece.flip++;
-	if(!ValidatePiece(piece)) RotateLeft();
-	if(CheckLock(piece)) blockTime = 0;
+	Piece p = piece;
+	if(p.flip == 3) p.flip = 0; else p.flip++;
+	// If rotating makes the piece overlap, try to wall kick
+	if(ValidatePiece(p) || WallKick(&p)) {
+		piece = p;
+		// Reset timer if next fall will lock
+		if(CheckLock(piece)) blockTime = 0;
+	}
 }
 
 // Switch current and hold block
