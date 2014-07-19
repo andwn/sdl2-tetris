@@ -10,7 +10,7 @@
 #define LINES_PER_LEVEL 20
 #define INITIAL_SPEED 45
 #define BLOCK_SIZE 16
-#define LOCK_TIME 30
+#define LOCK_DELAY 30
 
 #define STAGE_X 6 * BLOCK_SIZE
 #define STAGE_Y 2 * BLOCK_SIZE
@@ -134,12 +134,15 @@ void Initialize() {
 void MoveLeft() {
 	piece.x--;
 	if(!ValidatePiece(piece)) piece.x++;
+	// Reset timer if next fall will lock
+	if(CheckLock(piece)) blockTime = 0;
 }
 
 // Move to the right if possible
 void MoveRight() {
 	piece.x++;
 	if(!ValidatePiece(piece)) piece.x--;
+	if(CheckLock(piece)) blockTime = 0;
 }
 
 // Checks if the piece is overlapping with anything
@@ -160,12 +163,15 @@ bool ValidatePiece(Piece p) {
 void RotateLeft() {
 	if(piece.flip == 0) piece.flip = 3; else piece.flip--;
 	if(!ValidatePiece(piece)) RotateRight();
+	// Reset timer if next fall will lock
+	if(CheckLock(piece)) blockTime = 0;
 }
 
 // Rotate to the right if possible
 void RotateRight() {
 	if(piece.flip == 3) piece.flip = 0; else piece.flip++;
 	if(!ValidatePiece(piece)) RotateLeft();
+	if(CheckLock(piece)) blockTime = 0;
 }
 
 // Switch current and hold block
@@ -327,7 +333,13 @@ void Update() {
 		// Push block down according to speed
 		blockTime++;
 		if(blockTime >= blockSpeed) {
-			MoveDown();
+			// No matter the gravity, always wait at least half a second
+			// before locking
+			if(CheckLock(piece) && blockSpeed < 30 && !key.down) {
+				blockSpeed = LOCK_DELAY;
+			} else {
+				MoveDown();
+			}
 		}
 	}
 }

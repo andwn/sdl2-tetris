@@ -6,7 +6,7 @@ Incomplete Tetris clone that needs to be cleaned up
 How to Build
 ------------
 
-1. Get dependencies `SDL2` and `SDL2_ttf`
+1. Make sure you have dependencies `SDL2` and `SDL2_ttf`
 2. `git clone https://github.com/aderosier/sdl2-tetris.git sdl2-tetris`
 3. `cd sdl2-tetris`
 4. `make`
@@ -15,9 +15,10 @@ Controls
 --------
 
 - Arrow left/right - Move left/right
-- Arrow up, Z, X - Rotate
-- Arrow down - Speed up
-- Space - Drop
+- Arrow down - Soft Drop
+- Arrow up - Hard Drop
+- Z - Rotate left (counter clockwise)
+- X - Rotate right (clockwise)
 - Shift - Hold
 - Enter - Pause
 
@@ -31,7 +32,7 @@ Game Mechanics:
 - [ ] The tetrominos spawn horizontally and with their flat side pointed down
 - [x] Super Rotation System http://tetris.wikia.com/wiki/SRS
 - [ ] Wall kicks/floor kicks
-- [ ] Lock delay http://tetris.wikia.com/wiki/Infinity
+- [x] Lock delay http://tetris.wikia.com/wiki/Infinity
 - [ ] Standard mappings for computer keyboards
 - [x] "Random Bag" system http://tetris.wikia.com/wiki/Random_Generator
 - [x] Hold piece
