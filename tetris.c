@@ -12,9 +12,9 @@
 #define LINES_PER_LEVEL 20
 // "SPEED" is actually number of frames here
 // Initial speed is the "gravity" for level 1
-#define INITIAL_SPEED 45
+#define INITIAL_SPEED 60
 // Gravity for soft drop when player holds the down button
-#define DROP_SPEED 5
+#define DROP_SPEED 4
 // Size for each individual block, and also effects a number of other things
 #define BLOCK_SIZE 16
 // Minimum time a between a piece touching the bottom and locking
@@ -352,7 +352,6 @@ void lock_piece() {
 	if (nextLevel <= 0) {
 		nextLevel += LINES_PER_LEVEL;
 		level++;
-		reset_speed();
 	}
 	next_piece();
 }
@@ -407,11 +406,8 @@ Piece ghost_piece(Piece p) {
 
 // Adjusts the fall speed based on the current level
 void reset_speed() {
-	if (level <= 5) blockSpeed = INITIAL_SPEED - (level * 5);
-	else if (level <= 10) blockSpeed = INITIAL_SPEED - (level * 4) - 5;
-	else if (level <= 15) blockSpeed = INITIAL_SPEED - (level * 3) - 10;
-	else if (level <= 20) blockSpeed = INITIAL_SPEED - (level * 2) - 15;
-	else blockSpeed = INITIAL_SPEED - level - 20;
+	blockSpeed = INITIAL_SPEED - (level * 5);
+	if(blockSpeed < DROP_SPEED) blockSpeed = DROP_SPEED;
 }
 
 // Clear a row and move down above rows
@@ -436,6 +432,7 @@ void next_piece() {
 	holded = false; // Allow player to hold the next piece
 	// End the game if the next piece overlaps
 	if(!validate_piece(piece)) gameMode = MODE_GAMEOVER;
+	reset_speed();
 }
 
 // Main update, handles events and calls relevant game mode update function
@@ -499,7 +496,7 @@ void update_stage() {
 	if(blockTime >= blockSpeed) {
 		// No matter the gravity, always wait at least half a second
 		// before locking
-		if(check_lock(piece) && blockSpeed < 30 && !key.down) {
+		if(check_lock(piece) && blockSpeed < LOCK_DELAY && !key.down) {
 			blockSpeed = LOCK_DELAY;
 		} else {
 			move_piece_down();
