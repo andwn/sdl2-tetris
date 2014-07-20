@@ -9,8 +9,23 @@
 #define STAGE_H 20
 #define LINES_PER_LEVEL 20
 #define INITIAL_SPEED 45
+#define DROP_SPEED 5
 #define BLOCK_SIZE 16
 #define LOCK_DELAY 30
+#define SHIFT_DELAY 20
+#define SHIFT_SPEED 4
+
+#define SCORE_SINGLE 100
+#define SCORE_DOUBLE 300
+#define SCORE_TRIPLE 500
+#define SCORE_TETRIS 800
+#define SCORE_EZ_TSPIN 100
+#define SCORE_EZ_TSPIN_SINGLE 200
+#define SCORE_TSPIN 400
+#define SCORE_TSPIN_SINGLE 800
+#define SCORE_TSPIN_DOUBLE 1200
+#define SCORE_SOFT_DROP 1
+#define SCORE_HARD_DROP 2
 
 #define STAGE_X 6 * BLOCK_SIZE
 #define STAGE_Y 2 * BLOCK_SIZE
@@ -65,6 +80,8 @@ int blockSpeed = INITIAL_SPEED, blockTime = 0;
 int score = 0, linesCleared = 0, totalLines = 0, level = 1, nextLevel = LINES_PER_LEVEL;
 Piece piece, hold, queue[5];
 bool holded = false, heldSomething = false, paused = false, running = true;
+bool dropping = false;
+int autoShift = SHIFT_DELAY, shiftDirection = 0;
 
 void Initialize();
 void MoveLeft();
@@ -226,7 +243,10 @@ bool CheckLock(Piece p) {
 
 // Drop piece to the bottom and lock it
 void DropPiece() {
-	while (!CheckLock(piece)) piece.y++;
+	while (!CheckLock(piece)) {
+		piece.y++;
+		score += SCORE_HARD_DROP;
+	}
 	LockPiece();
 }
 
@@ -234,6 +254,11 @@ void DropPiece() {
 Piece DropShadow(Piece p) {
 	while(!CheckLock(p)) p.y++;
 	return p;
+}
+
+bool DetectTspin(Piece p) {
+	return (stage[p.x, p.y] > 0) + (stage[p.x + 2, p.y] > 0) +
+		(stage[p.x + 2, p.y + 2] > 0) + (stage[p.x, p.y + 2] > 0) == 3;
 }
 
 // Lock piece into stage and spawn the next
@@ -256,13 +281,34 @@ void LockPiece() {
 			rows_cleared++;
 		}
 	}
-	// Give score based on rows cleared
-	switch (rows_cleared) {
-		case 1: score += 100; break;
-		case 2: score += 200; break;
-		case 3: score += 400; break;
-		case 4: score += 800; break;
+	// Score rewards
+	int reward = 0;
+	// 3-corner T-spin
+	if(piece.type == 7 && DetectTspin(piece)) {
+		switch(rows_cleared) {
+			case 0: reward += SCORE_TSPIN * level; break;
+			case 1: reward += SCORE_TSPIN_SINGLE * level; break;
+			case 2: reward += SCORE_TSPIN_DOUBLE * level; break;
+		}
+	} else {
+		// Immobile (EZ) T-spin
+		Piece p = piece;
+		if(piece.type == 7 && WallKick(&p)) {
+			switch(rows_cleared) {
+				case 0: reward += SCORE_EZ_TSPIN * level; break;
+				case 1: reward += SCORE_EZ_TSPIN_SINGLE * level; break;
+			}
+		} else {
+			// Rows clear, no T-spin
+			switch (rows_cleared) {
+				case 1: reward += SCORE_SINGLE * level; break;
+				case 2: reward += SCORE_DOUBLE * level; break;
+				case 3: reward += SCORE_TRIPLE * level; break;
+				case 4: reward += SCORE_TETRIS * level; break;
+			}
+		}
 	}
+	score += reward;
 	// Update line total and level
 	linesCleared += rows_cleared;
 	totalLines += rows_cleared;
@@ -330,7 +376,10 @@ void DrawPiece(Piece p, int x, int y, bool shadow) {
 void MoveDown() {
 	if(CheckLock(piece)) {
 		LockPiece(piece);
-	} else piece.y++;
+	} else {
+		piece.y++;
+		if(dropping) score += SCORE_SOFT_DROP;
+	}
 	blockTime = 0;
 }
 
@@ -341,8 +390,24 @@ void Update() {
 	// Things that happen when the game isn't paused
 	if(!paused) {
 		// Moving left and right
-		if(key.left && !oldKey.left) MoveLeft();
-		if(key.right && !oldKey.right) MoveRight();
+		if(key.left && !oldKey.left) {
+			MoveLeft();
+			shiftDirection = -1;
+			autoShift = SHIFT_DELAY;
+		} else if(key.right && !oldKey.right) {
+			MoveRight();
+			shiftDirection = 1;
+			autoShift = SHIFT_DELAY;
+		}
+		// Delayed Auto Shift
+		if(key.right - key.left == shiftDirection) {
+			autoShift--;
+			if(autoShift == 0) {
+				autoShift = SHIFT_SPEED;
+				if(key.left) MoveLeft();
+				else if(key.right) MoveRight();
+			}
+		}
 		// Rotating block
 		if(key.z && !oldKey.z) RotateLeft();
 		if(key.x && !oldKey.x) RotateRight();
@@ -353,10 +418,12 @@ void Update() {
 		if(key.shift && !oldKey.shift) HoldPiece();
 		// If we hold the down key fall faster
 		if(key.down && !oldKey.down) {
+			blockSpeed = DROP_SPEED;
+			dropping = true;
 			MoveDown();
-			blockSpeed = 5;
 		} else if(!key.down && oldKey.down) {
 			ResetSpeed();
+			dropping = false;
 		}
 		// Push block down according to speed
 		blockTime++;
