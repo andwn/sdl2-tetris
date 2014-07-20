@@ -1,7 +1,8 @@
 SDL2 Tetris
 ===========
 
-Incomplete Tetris clone that needs to be cleaned up
+A Tetris clone written in C. Most of the features from modern Tetris games
+are implemented except for combos and special effects/nice graphics.
 
 How to Build
 ------------
