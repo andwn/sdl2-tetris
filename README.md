@@ -40,9 +40,9 @@ Game Mechanics:
 - [x] Player may only level up by clearing lines or performing T-Spin
 - [ ] The player tops out when a piece is spawned overlapping at least one block
 - [x] Display of next-coming tetrominos
-- [ ] T-spins
+- [x] T-spins
 - [ ] Rewarding of back to back chains
-- [ ] Delayed Auto Shift http://tetris.wikia.com/wiki/DAS
+- [x] Delayed Auto Shift http://tetris.wikia.com/wiki/DAS
 
 Code Quality:
 - [ ] More easily understandable block layout for tetrominos
