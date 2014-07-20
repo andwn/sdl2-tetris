@@ -22,14 +22,12 @@ void graphics_flip();
 
 void graphics_set_color(unsigned int color);
 
-void GenerateText(char *string);
+void graphics_draw_rect(int x, int y, int w, int h);
 
-void DrawRectFill(int x, int y, int w, int h);
+void graphics_draw_string(char *string, int x, int y);
 
-void DrawString(char *string, int x, int y);
+int graphics_string_width(char *string);
 
-int TextWidth(char *string);
-
-void DrawInt(int n, int x, int y);
+void graphics_draw_int(int n, int x, int y);
 
 #endif

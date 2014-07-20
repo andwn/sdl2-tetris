@@ -11,7 +11,7 @@ struct {
 } key, oldKey;
 
 // Updates the input structs to new values, and also handles SDL events
-int UpdateInput();
+int input_update();
 
 #endif
 

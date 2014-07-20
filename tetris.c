@@ -117,31 +117,42 @@ bool dropping = false;
 // Frame count for delayed auto shift, and the direction the piece is being shifted
 int autoShift = SHIFT_DELAY, shiftDirection = 0;
 
-void Initialize();
-void MoveLeft();
-void MoveRight();
-bool ValidatePiece(Piece p);
-void RotateLeft();
-void RotateRight();
-void HoldPiece();
-bool CheckLock(Piece p);
-void DropPiece();
-Piece DropShadow(Piece p);
-void LockPiece();
-void ResetSpeed();
-void ClearRow();
-void NextPiece();
-void GameOver();
-void Update();
-void Draw();
+// Function prototypes and order
+void initialize();
+void reset_game();
+void fill_random_bag();
+void move_piece_left();
+void move_piece_right();
+void move_piece_down();
+void rotate_piece_left();
+void rotate_piece_right();
+void hard_drop();
+void hold_piece();
+void lock_piece();
+bool validate_piece(Piece p);
+bool check_lock(Piece p);
+bool detect_tspin(Piece p);
+bool wall_kick(Piece *p);
+Piece ghost_piece(Piece p);
+void reset_speed();
+void clear_row();
+void next_piece();
+void update();
+void update_stage();
+void update_game_over();
+void draw();
+void draw_piece(Piece p, int x, int y, bool shadow);
+void draw_stage();
+void draw_game_over();
 
+// Entry point, args are unused but SDL complains if they are missing
 int main(int argc, char *argv[]) {
 	log_open("error.log");
-	Initialize();
+	initialize();
 	log_msgf(INFO, "Startup success.\n");
 	while(running) {
-		Update();
-		Draw();
+		update();
+		draw();
 	}
 	graphics_quit();
 	log_msgf(INFO, "Process exited cleanly.\n");
@@ -149,9 +160,47 @@ int main(int argc, char *argv[]) {
 	return 0;
 }
 
+// Create the game window and start stuff
+void initialize() {
+	graphics_init(SCREEN_W, SCREEN_H);
+	graphics_load_font("data/DejaVuSerif.ttf");
+	reset_game();
+}
+
+// Put values back to their defaults and start over
+void reset_game() {
+	// Clear the stage
+	for(int i = 0; i < STAGE_W; i++) {
+		for(int j = 0; j < STAGE_H; j++) {
+			stage[i][j] = 0;
+		}
+	}
+	// reset bag, queue, piece
+	fill_random_bag();
+	piece.type = randomBag[bagCount++];
+	piece.flip = 0;
+	piece.y = -2;
+	piece.x = 3;
+	for(int i = 0; i < 5; i++) {
+		queue[i].type = randomBag[bagCount++];
+		queue[i].flip = 0;
+	}
+	// Default values
+	heldSomething = false;
+	holded = false;
+	score = 0;
+	level = 0;
+	nextLevel = LINES_PER_LEVEL;
+	linesCleared = 0;
+	totalLines = 0;
+	reset_speed();
+	next_piece();
+	gameMode = MODE_STAGE;
+}
+
 // Regenerate the random bag, it contains the next 7 pieces to go in the queue
 // It always contains one of each type of tetromino
-void FillBag() {
+void fill_random_bag() {
 	Uint8 pool[7] = { 0, 1, 2, 3, 4, 5, 6 };
 	for(int i = 0; i < 7; i++) {
 		int j = rand() % (7 - i);
@@ -166,95 +215,74 @@ void FillBag() {
 		randomBag[4], randomBag[5], randomBag[6]);
 }
 
-void Initialize() {
-	graphics_init(SCREEN_W, SCREEN_H);
-	graphics_load_font("data/DejaVuSerif.ttf");
-	FillBag();
-	piece.type = randomBag[bagCount++];
-	piece.flip = 0;
-	piece.y = -2;
-	piece.x = 3;
-	for(int i = 0; i < 5; i++) {
-		queue[i].type = randomBag[bagCount++];
-		queue[i].flip = 0;
-	}
-	ResetSpeed();
-}
-
 // Move to the left if possible
-void MoveLeft() {
+void move_piece_left() {
 	Piece p = piece;
 	p.x--;
-	if(ValidatePiece(p)) {
+	if(validate_piece(p)) {
 		piece = p;
 		// Reset timer if next fall will lock
-		if(CheckLock(p)) blockTime = 0;
+		if(check_lock(p)) blockTime = 0;
 	}
 }
 
 // Move to the right if possible
-void MoveRight() {
+void move_piece_right() {
 	Piece p = piece;
 	p.x++;
-	if(ValidatePiece(p)) {
+	if(validate_piece(p)) {
 		piece = p;
 		// Reset timer if next fall will lock
-		if(CheckLock(piece)) blockTime = 0;
+		if(check_lock(piece)) blockTime = 0;
 	}
 }
 
-// Checks if the piece is overlapping with anything
-bool ValidatePiece(Piece p) {
-	for(int i = 0; i < 4; i++) {
-		for(int j = 0; j < 4; j++) {
-			int x = p.x + i, y = p.y + j;
-			if(PieceDB[p.type][p.flip]&blockmask(i, j)) {
-				if (x < 0 || x >= STAGE_W || y >= STAGE_H) return false;
-				if (y >= 0 && stage[x][y] > 0) return false;
-			}
-		}
+// Move down or lock
+void move_piece_down() {
+	if(check_lock(piece)) {
+		lock_piece(piece);
+	} else {
+		piece.y++;
+		if(dropping) score += SCORE_SOFT_DROP;
 	}
-	return true;
-}
-
-bool WallKick(Piece *p) {
-	p->x -= 1;
-	if(ValidatePiece(*p)) return true;
-	p->x += 2;
-	if(ValidatePiece(*p)) return true;
-	p->x -= 1;
-	p->y -= 1;
-	if(ValidatePiece(*p)) return true;
-	p->y += 1;
-	return false;
+	blockTime = 0;
 }
 
 // Rotate to the left if possible
-void RotateLeft() {
+void rotate_piece_left() {
 	Piece p = piece;
 	if(p.flip == 0) p.flip = 3; else p.flip--;
 	// If rotating makes the piece overlap, try to wall kick
-	if(ValidatePiece(p) || WallKick(&p)) {
+	if(validate_piece(p) || wall_kick(&p)) {
 		piece = p;
 		// Reset timer if next fall will lock
-		if(CheckLock(piece)) blockTime = 0;
+		if(check_lock(piece)) blockTime = 0;
 	}
 }
 
 // Rotate to the right if possible
-void RotateRight() {
+void rotate_piece_right() {
 	Piece p = piece;
 	if(p.flip == 3) p.flip = 0; else p.flip++;
 	// If rotating makes the piece overlap, try to wall kick
-	if(ValidatePiece(p) || WallKick(&p)) {
+	if(validate_piece(p) || wall_kick(&p)) {
 		piece = p;
 		// Reset timer if next fall will lock
-		if(CheckLock(piece)) blockTime = 0;
+		if(check_lock(piece)) blockTime = 0;
 	}
 }
 
+// Drop piece to the bottom and lock it
+void hard_drop() {
+	while (!check_lock(piece)) {
+		piece.y++;
+		score += SCORE_HARD_DROP;
+	}
+	lock_piece();
+}
+
 // Switch current and hold block
-void HoldPiece() {
+void hold_piece() {
 	if(holded) return; // Don't hold twice in a row
 	piece.x = 3; piece.y = 0;
 	if(heldSomething) {
@@ -264,39 +292,13 @@ void HoldPiece() {
 	} else {
 		hold = piece;
 		heldSomething = true;
-		NextPiece();
+		next_piece();
 	}
 	holded = true;
 }
 
-// Check if piece can be moved down any further
-bool CheckLock(Piece p) {
-	p.y++;
-	return !ValidatePiece(p);
-}
-
-// Drop piece to the bottom and lock it
-void DropPiece() {
-	while (!CheckLock(piece)) {
-		piece.y++;
-		score += SCORE_HARD_DROP;
-	}
-	LockPiece();
-}
-
-// Returns a shadow to display where the piece will drop
-Piece DropShadow(Piece p) {
-	while(!CheckLock(p)) p.y++;
-	return p;
-}
-
-bool DetectTspin(Piece p) {
-	return (stage[p.x, p.y] > 0) + (stage[p.x + 2, p.y] > 0) +
-		(stage[p.x + 2, p.y + 2] > 0) + (stage[p.x, p.y + 2] > 0) == 3;
-}
-
 // Lock piece into stage and spawn the next
-void LockPiece() {
+void lock_piece() {
 	// Push piece data into stage
 	for(int i = 0; i < 4; i++) {
 		for(int j = 0; j < 4; j++) {
@@ -311,14 +313,14 @@ void LockPiece() {
 		int filled = 0;
 		for(int j = 0; j < STAGE_W; j++) if (stage[j][i] > 0) filled++;
 		if (filled == STAGE_W) {
-			ClearRow(i);
+			clear_row(i);
 			rows_cleared++;
 		}
 	}
 	// Score rewards
 	int reward = 0;
 	// 3-corner T-spin
-	if(piece.type == 7 && DetectTspin(piece)) {
+	if(piece.type == 7 && detect_tspin(piece)) {
 		switch(rows_cleared) {
 			case 0: reward += SCORE_TSPIN * level; break;
 			case 1: reward += SCORE_TSPIN_SINGLE * level; break;
@@ -327,7 +329,7 @@ void LockPiece() {
 	} else {
 		// Immobile (EZ) T-spin
 		Piece p = piece;
-		if(piece.type == 7 && WallKick(&p)) {
+		if(piece.type == 7 && wall_kick(&p)) {
 			switch(rows_cleared) {
 				case 0: reward += SCORE_EZ_TSPIN * level; break;
 				case 1: reward += SCORE_EZ_TSPIN_SINGLE * level; break;
@@ -350,13 +352,61 @@ void LockPiece() {
 	if (nextLevel <= 0) {
 		nextLevel += LINES_PER_LEVEL;
 		level++;
-		ResetSpeed();
+		reset_speed();
 	}
-	NextPiece();
+	next_piece();
+}
+
+// Checks if the piece is overlapping with anything
+bool validate_piece(Piece p) {
+	for(int i = 0; i < 4; i++) {
+		for(int j = 0; j < 4; j++) {
+			int x = p.x + i, y = p.y + j;
+			if(PieceDB[p.type][p.flip]&blockmask(i, j)) {
+				if (x < 0 || x >= STAGE_W || y >= STAGE_H) return false;
+				if (y >= 0 && stage[x][y] > 0) return false;
+			}
+		}
+	}
+	return true;
+}
+
+// Check if piece can be moved down any further
+bool check_lock(Piece p) {
+	p.y++;
+	return !validate_piece(p);
+}
+
+bool detect_tspin(Piece p) {
+	return (stage[p.x, p.y] > 0) + (stage[p.x + 2, p.y] > 0) +
+		(stage[p.x + 2, p.y + 2] > 0) + (stage[p.x, p.y + 2] > 0) == 3;
+}
+
+// Try to push the piece out of an obstacles way
+bool wall_kick(Piece *p) {
+	// Left
+	p->x -= 1;
+	if(validate_piece(*p)) return true;
+	// Right
+	p->x += 2;
+	if(validate_piece(*p)) return true;
+	// Up
+	p->x -= 1;
+	p->y -= 1;
+	if(validate_piece(*p)) return true;
+	// Unable to wall kick, return piece to the way it was
+	p->y += 1;
+	return false;
+}
+
+// Returns a shadow to display where the piece will drop
+Piece ghost_piece(Piece p) {
+	while(!check_lock(p)) p.y++;
+	return p;
 }
 
 // Adjusts the fall speed based on the current level
-void ResetSpeed() {
+void reset_speed() {
 	if (level <= 5) blockSpeed = INITIAL_SPEED - (level * 5);
 	else if (level <= 10) blockSpeed = INITIAL_SPEED - (level * 4) - 5;
 	else if (level <= 15) blockSpeed = INITIAL_SPEED - (level * 3) - 10;
@@ -365,7 +415,7 @@ void ResetSpeed() {
 }
 
 // Clear a row and move down above rows
-void ClearRow(int row) {
+void clear_row(int row) {
 	for(int i = row; i > 0; i--) {
 		for(int j = 0; j < STAGE_W; j++) {
 			stage[j][i] = stage[j][i-1];
@@ -375,84 +425,46 @@ void ClearRow(int row) {
 }
 
 // Shift to the next block in the queue
-void NextPiece() {
+void next_piece() {
 	piece = queue[0];
 	piece.y = -2;
 	piece.x = 3;
 	for(int i = 0; i < 4; i++) queue[i] = queue[i+1];
 	// Grab piece from the bag, refill if it becomes empty
 	queue[4].type = randomBag[bagCount++];
-	if(bagCount == 7) FillBag();
+	if(bagCount == 7) fill_random_bag();
 	holded = false; // Allow player to hold the next piece
 	// End the game if the next piece overlaps
-	if(!ValidatePiece(piece)) GameOver();
+	if(!validate_piece(piece)) gameMode = MODE_GAMEOVER;
 }
 
-void GameOver() {
-	gameMode = MODE_GAMEOVER;
-}
-
-void DrawPiece(Piece p, int x, int y, bool shadow) {
-	// 7 is the shadow color, others match with Piece.type
-	int c = shadow ? 7 : p.type;
-	graphics_set_color(PieceColor[c]);
-	for(int i = 0; i < 4; i++) {
-		for(int j = 0; j < 4; j++) {
-			if(PieceDB[p.type][p.flip]&blockmask(i, j)) {
-				if(p.y + j < 0) continue;
-				DrawRectFill(x + i * BLOCK_SIZE + 1, y + j * BLOCK_SIZE + 1, 
-					BLOCK_SIZE - 2, BLOCK_SIZE - 2);
-			}
-		}
+// Main update, handles events and calls relevant game mode update function
+void update() {
+	// Update keyboard input and events
+	// Close the game if the window is closed or escape key is pressed
+	if(input_update() || key.esc) running = false;
+	switch(gameMode) {
+		case MODE_STAGE:
+		update_stage();
+		break;
+		case MODE_GAMEOVER:
+		update_game_over();
+		break;
 	}
 }
 
-void MoveDown() {
-	if(CheckLock(piece)) {
-		LockPiece(piece);
-	} else {
-		piece.y++;
-		if(dropping) score += SCORE_SOFT_DROP;
-	}
-	blockTime = 0;
-}
-
-void ResetGame() {
-	for(int i = 0; i < STAGE_W; i++) {
-		for(int j = 0; j < STAGE_H; j++) {
-			stage[i][j] = 0;
-		}
-	}
-	score = 0;
-	level = 0;
-	nextLevel = LINES_PER_LEVEL;
-	linesCleared = 0;
-	totalLines = 0;
-	FillBag();
-	//piece = randomBag[bagCount++];
-	for(int i = 0; i < 5; i++) {
-		queue[i].type = randomBag[bagCount++];
-	}
-	NextPiece();
-	heldSomething = false;
-	holded = false;
-	blockSpeed = INITIAL_SPEED;
-	blockTime = 0;
-	gameMode = MODE_STAGE;
-}
-
-// Relevant update actions when the game is being played
-void UpdateStage() {
+// Update actions when the game is being played
+void update_stage() {
 	if(key.enter && !oldKey.enter) paused = !paused;
 	// Don't update the rest if the game is paused
 	if(paused) return;
 	// Moving left and right
 	if(key.left && !oldKey.left) {
-		MoveLeft();
+		move_piece_left();
 		shiftDirection = -1;
 		autoShift = SHIFT_DELAY;
 	} else if(key.right && !oldKey.right) {
-		MoveRight();
+		move_piece_right();
 		shiftDirection = 1;
 		autoShift = SHIFT_DELAY;
 	}
@@ -461,25 +473,25 @@ void UpdateStage() {
 		autoShift--;
 		if(autoShift == 0) {
 			autoShift = SHIFT_SPEED;
-			if(key.left) MoveLeft();
-			else if(key.right) MoveRight();
+			if(key.left) move_piece_left();
+			else if(key.right) move_piece_right();
 		}
 	}
 	// Rotating block
-	if(key.z && !oldKey.z) RotateLeft();
-	if(key.x && !oldKey.x) RotateRight();
-	if(key.up && !oldKey.up) RotateRight();
+	if(key.z && !oldKey.z) rotate_piece_left();
+	if(key.x && !oldKey.x) rotate_piece_right();
+	if(key.up && !oldKey.up) rotate_piece_right();
 	// Drop and Lock
-	if(key.space && !oldKey.space) DropPiece();
+	if(key.space && !oldKey.space) hard_drop();
 	// Hold a block and save it for later
-	if(key.shift && !oldKey.shift) HoldPiece();
+	if(key.shift && !oldKey.shift) hold_piece();
 	// If we hold the down key fall faster
 	if(key.down && !oldKey.down) {
 		blockSpeed = DROP_SPEED;
 		dropping = true;
-		MoveDown();
+		move_piece_down();
 	} else if(!key.down && oldKey.down) {
-		ResetSpeed();
+		reset_speed();
 		dropping = false;
 	}
 	// Push block down according to speed
@@ -487,93 +499,94 @@ void UpdateStage() {
 	if(blockTime >= blockSpeed) {
 		// No matter the gravity, always wait at least half a second
 		// before locking
-		if(CheckLock(piece) && blockSpeed < 30 && !key.down) {
+		if(check_lock(piece) && blockSpeed < 30 && !key.down) {
 			blockSpeed = LOCK_DELAY;
 		} else {
-			MoveDown();
+			move_piece_down();
 		}
 	}
 }
 
 // Game over screen
-void UpdateGameOver() {
-	if(key.enter && !oldKey.enter) ResetGame();
+void update_game_over() {
+	if(key.enter && !oldKey.enter) reset_game();
 }
 
-void Update() {
-	// Update keyboard input and events
-	// Close the game if the window is closed or escape key is pressed
-	if(UpdateInput() || key.esc) running = false;
+void draw() {
+	graphics_set_color(COLOR_BLACK);
+	// Draw stage background
+	graphics_draw_rect(STAGE_X, STAGE_Y, STAGE_W * BLOCK_SIZE, STAGE_H * BLOCK_SIZE);
+	// Queue background
+	graphics_draw_rect(QUEUE_X, QUEUE_Y, BLOCK_SIZE * 4, BLOCK_SIZE * 4 * 5);
+	// Hold background
+	graphics_draw_rect(HOLD_X, HOLD_Y, BLOCK_SIZE * 4, BLOCK_SIZE * 4);
+	// Game mode specific draw functions
 	switch(gameMode) {
 		case MODE_STAGE:
-		UpdateStage();
+		draw_stage();
 		break;
 		case MODE_GAMEOVER:
-		UpdateGameOver();
+		draw_game_over();
 		break;
+	}
+	graphics_set_color(COLOR_BLACK);
+	// Draw the text
+	graphics_draw_string("Score: ", STAGE_X, 0);
+	graphics_draw_int(score, STAGE_X + graphics_string_width("Score: ") + 96, 0);
+	graphics_draw_string("Queue", QUEUE_X, 0);
+	graphics_draw_string("Hold", HOLD_X, 0);
+	graphics_draw_string("Level:", HOLD_X, HOLD_Y + (5 * BLOCK_SIZE));
+	graphics_draw_int(level,       HOLD_X + 64, HOLD_Y + (7 * BLOCK_SIZE));
+	graphics_draw_string("Next:",  HOLD_X, HOLD_Y + (10 * BLOCK_SIZE));
+	graphics_draw_int(nextLevel,   HOLD_X + 64, HOLD_Y + (12 * BLOCK_SIZE));
+	graphics_draw_string("Total:", HOLD_X, HOLD_Y + (15 * BLOCK_SIZE));
+	graphics_draw_int(totalLines,  HOLD_X + 64, HOLD_Y + (17 * BLOCK_SIZE));
+	// Wait until frame time and flip the backbuffer
+	graphics_flip();
+}
+
+void draw_piece(Piece p, int x, int y, bool shadow) {
+	// 7 is the shadow color, others match with Piece.type
+	int c = shadow ? 7 : p.type;
+	graphics_set_color(PieceColor[c]);
+	for(int i = 0; i < 4; i++) {
+		for(int j = 0; j < 4; j++) {
+			if(PieceDB[p.type][p.flip]&blockmask(i, j)) {
+				if(p.y + j < 0) continue;
+				graphics_draw_rect(x + i * BLOCK_SIZE + 1, y + j * BLOCK_SIZE + 1, 
+					BLOCK_SIZE - 2, BLOCK_SIZE - 2);
+			}
+		}
 	}
 }
 
-void DrawStage() {
+void draw_stage() {
 	// Draw the pieces on the stage
 	for (int i = 0; i < 10; i++) {
 		for (int j = 0; j < 20; j++) {
 			if (stage[i][j] == 0) continue;
 			int c = stage[i][j] - 1;
 			graphics_set_color(PieceColor[c]);
-			DrawRectFill(i * BLOCK_SIZE + STAGE_X + 1, 
+			graphics_draw_rect(i * BLOCK_SIZE + STAGE_X + 1, 
 				j * BLOCK_SIZE + STAGE_Y + 1, BLOCK_SIZE - 2, BLOCK_SIZE - 2);
 		}
 	}
 	// Draw the ghost piece (shadow)
-	Piece shadow = DropShadow(piece);
-	DrawPiece(shadow, shadow.x * BLOCK_SIZE + STAGE_X, shadow.y * BLOCK_SIZE + STAGE_Y, true);
+	Piece shadow = ghost_piece(piece);
+	draw_piece(shadow, shadow.x * BLOCK_SIZE + STAGE_X, shadow.y * BLOCK_SIZE + STAGE_Y, true);
 	// Draw current piece
-	DrawPiece(piece, piece.x * BLOCK_SIZE + STAGE_X, piece.y * BLOCK_SIZE + STAGE_Y, false);
+	draw_piece(piece, piece.x * BLOCK_SIZE + STAGE_X, piece.y * BLOCK_SIZE + STAGE_Y, false);
 	// Queue pieces
 	for(int q = 0; q < 5; q++) {
-		DrawPiece(queue[q], QUEUE_X, q * (BLOCK_SIZE*4) + QUEUE_Y, false);
+		draw_piece(queue[q], QUEUE_X, q * (BLOCK_SIZE*4) + QUEUE_Y, false);
 	}
 	// Hold piece
 	if(heldSomething) {
-		DrawPiece(hold, HOLD_X, HOLD_Y, false);
+		draw_piece(hold, HOLD_X, HOLD_Y, false);
 	}
 }
 
-void DrawGameOver() {
+void draw_game_over() {
 	graphics_set_color(COLOR_RED);
-	DrawString("Game Over", STAGE_X, STAGE_Y + 5*BLOCK_SIZE);
-}
-
-void Draw() {
-	graphics_set_color(COLOR_BLACK);
-	// Draw stage background
-	DrawRectFill(STAGE_X, STAGE_Y, STAGE_W * BLOCK_SIZE, STAGE_H * BLOCK_SIZE);
-	// Queue background
-	DrawRectFill(QUEUE_X, QUEUE_Y, BLOCK_SIZE * 4, BLOCK_SIZE * 4 * 5);
-	// Hold background
-	DrawRectFill(HOLD_X, HOLD_Y, BLOCK_SIZE * 4, BLOCK_SIZE * 4);
-	// Game mode specific draw functions
-	switch(gameMode) {
-		case MODE_STAGE:
-		DrawStage();
-		break;
-		case MODE_GAMEOVER:
-		DrawGameOver();
-		break;
-	}
-	graphics_set_color(COLOR_BLACK);
-	// Draw the text
-	DrawString("Score: ", STAGE_X, 0);
-	DrawInt(score, STAGE_X + TextWidth("Score: ") + 96, 0);
-	DrawString("Queue", QUEUE_X, 0);
-	DrawString("Hold", HOLD_X, 0);
-	DrawString("Level:", HOLD_X, HOLD_Y + (5 * BLOCK_SIZE));
-	DrawInt(level,       HOLD_X + 64, HOLD_Y + (7 * BLOCK_SIZE));
-	DrawString("Next:",  HOLD_X, HOLD_Y + (10 * BLOCK_SIZE));
-	DrawInt(nextLevel,   HOLD_X + 64, HOLD_Y + (12 * BLOCK_SIZE));
-	DrawString("Total:", HOLD_X, HOLD_Y + (15 * BLOCK_SIZE));
-	DrawInt(totalLines,  HOLD_X + 64, HOLD_Y + (17 * BLOCK_SIZE));
-	// Wait until frame time and flip the backbuffer
-	graphics_flip();
+	graphics_draw_string("Game Over", STAGE_X, STAGE_Y + 5*BLOCK_SIZE);
 }

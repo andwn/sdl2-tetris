@@ -16,7 +16,10 @@ TTF_Font *font;
 struct { char *string; SDL_Texture *texture; } text[MAX_TEXT];
 int text_count = 0;
 
-void DrawTexture(SDL_Texture *texture, int x, int y);
+// Internal function prototypes
+void graphics_generate_text(char *string);
+void graphics_wipe_text();
+void graphics_draw_texture(SDL_Texture *texture, int x, int y);
 
 void graphics_init(int x, int y) {
 	if(SDL_Init(SDL_INIT_VIDEO)==-1) {
@@ -40,7 +43,7 @@ void graphics_load_font(const char *filename) {
 }
 
 // Delete all generated text forcing them to be regenerated next frame
-void WipeText() {
+void graphics_wipe_text() {
 	for(int i = 0; i < text_count; i++) {
 		SDL_DestroyTexture(text[i].texture);
 	}
@@ -49,7 +52,7 @@ void WipeText() {
 
 void graphics_quit() {
 	TTF_CloseFont(font);
-	WipeText();
+	graphics_wipe_text();
 	TTF_Quit();
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
@@ -68,7 +71,7 @@ void graphics_set_color(unsigned int color) {
 	SDL_SetRenderDrawColor(renderer, color>>24, color>>16, color>>8, color);
 }
 
-void GenerateText(char *string) {
+void graphics_generate_text(char *string) {
 	SDL_Color color;
 	SDL_GetRenderDrawColor(renderer, &color.r, &color.g, &color.b, &color.a);
 	SDL_Surface *surface = TTF_RenderUTF8_Blended(font, string, color);
@@ -87,31 +90,31 @@ void GenerateText(char *string) {
 	text_count++;
 }
 
-void DrawRectFill(int x, int y, int w, int h) {
+void graphics_draw_rect(int x, int y, int w, int h) {
 	SDL_Rect rect = { x, y, w, h };
 	SDL_RenderFillRect(renderer, &rect);
 }
 
-void DrawTexture(SDL_Texture *texture, int x, int y) {
+void graphics_draw_texture(SDL_Texture *texture, int x, int y) {
 	SDL_Rect drect = { x, y, 0, 0 };
 	SDL_QueryTexture(texture, NULL, NULL, &drect.w, &drect.h);
 	SDL_RenderCopy(renderer, texture, NULL, &drect);
 }
 
-void DrawString(char *string, int x, int y) {
+void graphics_draw_string(char *string, int x, int y) {
 	if(strcmp(string, "") == 0) return;
 	for(int i = 0; i < text_count; i++) {
 		if(strcmp(string, text[i].string)!=0) continue;
-		DrawTexture(text[i].texture, x, y);
+		graphics_draw_texture(text[i].texture, x, y);
 		return;
 	}
 	// If a texture for the string doesn't exist create it
 	log_msgf(TRACE, "DrawString: Generating new texture for \"%s\".\n", string);
-	GenerateText(string);
-	DrawTexture(text[text_count-1].texture, x, y);
+	graphics_generate_text(string);
+	graphics_draw_texture(text[text_count-1].texture, x, y);
 }
 
-int TextWidth(char *string) {
+int graphics_string_width(char *string) {
 	if(strcmp(string, "") == 0) return 0;
 	for(int i = 0; i < text_count; i++) {
 		if(strcmp(string, text[i].string)!=0) continue;
@@ -122,20 +125,20 @@ int TextWidth(char *string) {
 	return 0;
 }
 
-void DrawInt(int n, int x, int y) {
+void graphics_draw_int(int n, int x, int y) {
 	do {
 		x -= 12;
 		switch(n % 10) {
-			case 0: DrawString("0", x, y); break;
-			case 1: DrawString("1", x, y); break;
-			case 2: DrawString("2", x, y); break;
-			case 3: DrawString("3", x, y); break;
-			case 4: DrawString("4", x, y); break;
-			case 5: DrawString("5", x, y); break;
-			case 6: DrawString("6", x, y); break;
-			case 7: DrawString("7", x, y); break;
-			case 8: DrawString("8", x, y); break;
-			case 9: DrawString("9", x, y); break;
+			case 0: graphics_draw_string("0", x, y); break;
+			case 1: graphics_draw_string("1", x, y); break;
+			case 2: graphics_draw_string("2", x, y); break;
+			case 3: graphics_draw_string("3", x, y); break;
+			case 4: graphics_draw_string("4", x, y); break;
+			case 5: graphics_draw_string("5", x, y); break;
+			case 6: graphics_draw_string("6", x, y); break;
+			case 7: graphics_draw_string("7", x, y); break;
+			case 8: graphics_draw_string("8", x, y); break;
+			case 9: graphics_draw_string("9", x, y); break;
 		}
 		n /= 10;
 	} while(n > 0);

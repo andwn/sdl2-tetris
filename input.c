@@ -11,7 +11,7 @@ const int K_SPACE  = SDL_SCANCODE_SPACE;
 const int K_RETURN = SDL_SCANCODE_RETURN;
 const int K_ESC    = SDL_SCANCODE_ESCAPE;
 
-int UpdateInput() {
+int input_update() {
 	SDL_Event event;
 	while(SDL_PollEvent(&event)) {
 		if(event.type == SDL_QUIT) return 1;

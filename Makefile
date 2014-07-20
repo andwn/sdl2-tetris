@@ -3,7 +3,7 @@ CC=gcc
 #CC=clang
 CFLAGS=-std=c99 -O2
 LIBS=-lSDL2 -lSDL2_ttf
-OBJS=tetris.o input.o graphics.c logsys.c
+OBJS=tetris.o input.o graphics.o logsys.o
 OUTPUT=tetris
 
 all: $(OBJS)
