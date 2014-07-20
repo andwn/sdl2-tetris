@@ -5,16 +5,26 @@
 #include "input.h"
 #include "graphics.h"
 
+// Size of the stage
 #define STAGE_W 10
 #define STAGE_H 20
+// Number of lines to clear before going to the next level
 #define LINES_PER_LEVEL 20
+// "SPEED" is actually number of frames here
+// Initial speed is the "gravity" for level 1
 #define INITIAL_SPEED 45
+// Gravity for soft drop when player holds the down button
 #define DROP_SPEED 5
+// Size for each individual block, and also effects a number of other things
 #define BLOCK_SIZE 16
+// Minimum time a between a piece touching the bottom and locking
 #define LOCK_DELAY 30
+// For delayed auto shift, wait SHIFT_DELAY frames first,
+// then wait SHIFT_SPEED while left/right continues to be held
 #define SHIFT_DELAY 20
 #define SHIFT_SPEED 4
 
+// Score amounts rewarded for various actions
 #define SCORE_SINGLE 100
 #define SCORE_DOUBLE 300
 #define SCORE_TRIPLE 500
@@ -27,6 +37,13 @@
 #define SCORE_SOFT_DROP 1
 #define SCORE_HARD_DROP 2
 
+// Game mode, like using screens except a single variable switch instead
+#define MODE_TITLE 0
+#define MODE_OPTIONS 1
+#define MODE_STAGE 2
+#define MODE_GAMEOVER 3
+
+// Locations and sizes that depend on the chosen block size
 #define STAGE_X 6 * BLOCK_SIZE
 #define STAGE_Y 2 * BLOCK_SIZE
 #define SCREEN_W 22 * BLOCK_SIZE
@@ -44,6 +61,8 @@ typedef unsigned int Uint32;
 typedef unsigned char bool;
 enum {false,true};
 
+// This array describes the block configuration of a piece, for each shape
+// and rotation in a 4x4 grid ordered left to right, then top to bottom
 // Indexed: PieceDB[type][flip]
 Uint16 PieceDB[7][4] = { // O, I, L, J, S, Z, T
 	{0b0000011001100000,0b0000011001100000,0b0000011001100000,0b0000011001100000},
@@ -68,19 +87,34 @@ Uint32 PieceColor[8] = {
 	0x606060FF  // Shadow
 };
 
+// Represents an "instance" of a piece
 typedef struct {
+	// X and Y position (in blocks) on the stage
 	Sint8 x; Sint8 y;
+	// Type and flip value to index the PieceDB array
 	Uint8 type; Uint8 flip;
 } Piece;
 
+// Current game mode (title screen, stage, game over screen, etc)
+int gameMode = MODE_STAGE;
+// Contains blocks/pieces that have fallen and bacame part of the stage
 Uint8 stage[STAGE_W][STAGE_H];
+// Random bag used to decide piece order
 Uint8 randomBag[7], bagCount = 0;
-int timeLocked = 0;
+// Block speed is the falling speed measured in frames between motions
+// The block time is the elapsed frames which counts up to block speed
 int blockSpeed = INITIAL_SPEED, blockTime = 0;
+// Player's stats, score, level, etc
 int score = 0, linesCleared = 0, totalLines = 0, level = 1, nextLevel = LINES_PER_LEVEL;
+// Current piece controlled by player, held for later, and the queue
 Piece piece, hold, queue[5];
-bool holded = false, heldSomething = false, paused = false, running = true;
+// Whether the player held the previous piece, and has held any piece yet
+bool holded = false, heldSomething = false;
+// Whether game is paused or running. Not running means the game will exit
+bool paused = false, running = true;
+// True if the player is holding down to soft drop a piece
 bool dropping = false;
+// Frame count for delayed auto shift, and the direction the piece is being shifted
 int autoShift = SHIFT_DELAY, shiftDirection = 0;
 
 void Initialize();
@@ -355,7 +389,7 @@ void NextPiece() {
 }
 
 void GameOver() {
-	//exit(0);
+	gameMode = MODE_GAMEOVER;
 }
 
 void DrawPiece(Piece p, int x, int y, bool shadow) {
@@ -383,59 +417,76 @@ void MoveDown() {
 	blockTime = 0;
 }
 
-void Update() {
-	// Input and pause handling
-	if(UpdateInput() || key.esc) running = false;
+// Relevant update actions when the game is being played
+void UpdateStage() {
 	if(key.enter && !oldKey.enter) paused = !paused;
-	// Things that happen when the game isn't paused
-	if(!paused) {
-		// Moving left and right
-		if(key.left && !oldKey.left) {
-			MoveLeft();
-			shiftDirection = -1;
-			autoShift = SHIFT_DELAY;
-		} else if(key.right && !oldKey.right) {
-			MoveRight();
-			shiftDirection = 1;
-			autoShift = SHIFT_DELAY;
+	// Don't update the rest if the game is paused
+	if(paused) return;
+	// Moving left and right
+	if(key.left && !oldKey.left) {
+		MoveLeft();
+		shiftDirection = -1;
+		autoShift = SHIFT_DELAY;
+	} else if(key.right && !oldKey.right) {
+		MoveRight();
+		shiftDirection = 1;
+		autoShift = SHIFT_DELAY;
+	}
+	// Delayed Auto Shift
+	if(key.right - key.left == shiftDirection) {
+		autoShift--;
+		if(autoShift == 0) {
+			autoShift = SHIFT_SPEED;
+			if(key.left) MoveLeft();
+			else if(key.right) MoveRight();
 		}
-		// Delayed Auto Shift
-		if(key.right - key.left == shiftDirection) {
-			autoShift--;
-			if(autoShift == 0) {
-				autoShift = SHIFT_SPEED;
-				if(key.left) MoveLeft();
-				else if(key.right) MoveRight();
-			}
-		}
-		// Rotating block
-		if(key.z && !oldKey.z) RotateLeft();
-		if(key.x && !oldKey.x) RotateRight();
-		// Drop and Lock
-		if(key.up && !oldKey.up) DropPiece();
-		//if(key.space && !oldKey.space) DropPiece();
-		// Hold a block and save it for later
-		if(key.shift && !oldKey.shift) HoldPiece();
-		// If we hold the down key fall faster
-		if(key.down && !oldKey.down) {
-			blockSpeed = DROP_SPEED;
-			dropping = true;
+	}
+	// Rotating block
+	if(key.z && !oldKey.z) RotateLeft();
+	if(key.x && !oldKey.x) RotateRight();
+	if(key.up && !oldKey.up) RotateRight();
+	// Drop and Lock
+	if(key.space && !oldKey.space) DropPiece();
+	// Hold a block and save it for later
+	if(key.shift && !oldKey.shift) HoldPiece();
+	// If we hold the down key fall faster
+	if(key.down && !oldKey.down) {
+		blockSpeed = DROP_SPEED;
+		dropping = true;
+		MoveDown();
+	} else if(!key.down && oldKey.down) {
+		ResetSpeed();
+		dropping = false;
+	}
+	// Push block down according to speed
+	blockTime++;
+	if(blockTime >= blockSpeed) {
+		// No matter the gravity, always wait at least half a second
+		// before locking
+		if(CheckLock(piece) && blockSpeed < 30 && !key.down) {
+			blockSpeed = LOCK_DELAY;
+		} else {
 			MoveDown();
-		} else if(!key.down && oldKey.down) {
-			ResetSpeed();
-			dropping = false;
 		}
-		// Push block down according to speed
-		blockTime++;
-		if(blockTime >= blockSpeed) {
-			// No matter the gravity, always wait at least half a second
-			// before locking
-			if(CheckLock(piece) && blockSpeed < 30 && !key.down) {
-				blockSpeed = LOCK_DELAY;
-			} else {
-				MoveDown();
-			}
-		}
+	}
+}
+
+// 
+void UpdateGameOver() {
+	
+}
+
+void Update() {
+	// Update keyboard input and events
+	// Close the game if the window is closed or escape key is pressed
+	if(UpdateInput() || key.esc) running = false;
+	switch(gameMode) {
+		case MODE_STAGE:
+		UpdateStage();
+		break;
+		case MODE_GAMEOVER:
+		UpdateGameOver();
+		break;
 	}
 }
 
