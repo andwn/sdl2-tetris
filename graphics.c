@@ -69,7 +69,8 @@ void graphics_set_color(unsigned int color) {
 }
 
 void GenerateText(char *string) {
-	SDL_Color color = { 0, 0, 0, 255 }; // Black
+	SDL_Color color;
+	SDL_GetRenderDrawColor(renderer, &color.r, &color.g, &color.b, &color.a);
 	SDL_Surface *surface = TTF_RenderUTF8_Blended(font, string, color);
 	if(!surface) {
 		log_msgf(ERROR, "TTF_RenderUTF8_Blended: %s\n", TTF_GetError());

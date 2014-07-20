@@ -16,9 +16,9 @@ Controls
 
 - Arrow left/right - Move left/right
 - Arrow down - Soft Drop
-- Arrow up - Hard Drop
+- Space - Hard Drop
 - Z - Rotate left (counter clockwise)
-- X - Rotate right (clockwise)
+- X, Arrow up - Rotate right (clockwise)
 - Shift - Hold
 - Enter - Pause
 
@@ -38,7 +38,7 @@ Game Mechanics:
 - [x] Ghost piece
 - [x] Designated soft drop speed
 - [x] Player may only level up by clearing lines or performing T-Spin
-- [ ] The player tops out when a piece is spawned overlapping at least one block
+- [x] The player tops out when a piece is spawned overlapping at least one block
 - [x] Display of next-coming tetrominos
 - [x] T-spins
 - [ ] Rewarding of back to back chains

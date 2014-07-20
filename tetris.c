@@ -77,14 +77,14 @@ Uint16 PieceDB[7][4] = { // O, I, L, J, S, Z, T
 Uint16 blockmask(int x, int y) { return 0x8000>>(x+y*4); }
 
 Uint32 PieceColor[8] = {
-	0xFFFF00FF, // O - Yellow
-	0x00FFFFFF, // I - Cyan
-	0x0000FFFF, // J - Blue
-	0xFFA000FF, // L - Orange
-	0x00FF00FF, // S - Green
-	0xFF0000FF, // Z - Red
-	0xA000FFFF, // T - Purple
-	0x606060FF  // Shadow
+	COLOR_YELLOW, // O - Yellow
+	COLOR_CYAN,   // I - Cyan
+	COLOR_BLUE,   // J - Blue
+	COLOR_ORANGE, // L - Orange
+	COLOR_GREEN,  // S - Green
+	COLOR_RED,    // Z - Red
+	COLOR_PURPLE, // T - Purple
+	COLOR_SHADOW  // Shadow
 };
 
 // Represents an "instance" of a piece
@@ -417,6 +417,30 @@ void MoveDown() {
 	blockTime = 0;
 }
 
+void ResetGame() {
+	for(int i = 0; i < STAGE_W; i++) {
+		for(int j = 0; j < STAGE_H; j++) {
+			stage[i][j] = 0;
+		}
+	}
+	score = 0;
+	level = 0;
+	nextLevel = LINES_PER_LEVEL;
+	linesCleared = 0;
+	totalLines = 0;
+	FillBag();
+	//piece = randomBag[bagCount++];
+	for(int i = 0; i < 5; i++) {
+		queue[i].type = randomBag[bagCount++];
+	}
+	NextPiece();
+	heldSomething = false;
+	holded = false;
+	blockSpeed = INITIAL_SPEED;
+	blockTime = 0;
+	gameMode = MODE_STAGE;
+}
+
 // Relevant update actions when the game is being played
 void UpdateStage() {
 	if(key.enter && !oldKey.enter) paused = !paused;
@@ -471,9 +495,9 @@ void UpdateStage() {
 	}
 }
 
-// 
+// Game over screen
 void UpdateGameOver() {
-	
+	if(key.enter && !oldKey.enter) ResetGame();
 }
 
 void Update() {
@@ -490,12 +514,8 @@ void Update() {
 	}
 }
 
-void Draw() {
-	// Draw stage
-	graphics_set_color(COLOR_BLACK);
-	DrawString("Score: ", STAGE_X, 0);
-	DrawInt(score, STAGE_X + TextWidth("Score: ") + 96, 0);
-	DrawRectFill(STAGE_X, STAGE_Y, STAGE_W * BLOCK_SIZE, STAGE_H * BLOCK_SIZE);
+void DrawStage() {
+	// Draw the pieces on the stage
 	for (int i = 0; i < 10; i++) {
 		for (int j = 0; j < 20; j++) {
 			if (stage[i][j] == 0) continue;
@@ -505,32 +525,55 @@ void Draw() {
 				j * BLOCK_SIZE + STAGE_Y + 1, BLOCK_SIZE - 2, BLOCK_SIZE - 2);
 		}
 	}
-	// Draw shadow
+	// Draw the ghost piece (shadow)
 	Piece shadow = DropShadow(piece);
 	DrawPiece(shadow, shadow.x * BLOCK_SIZE + STAGE_X, shadow.y * BLOCK_SIZE + STAGE_Y, true);
-	// Draw piece
+	// Draw current piece
 	DrawPiece(piece, piece.x * BLOCK_SIZE + STAGE_X, piece.y * BLOCK_SIZE + STAGE_Y, false);
-	// Queue
-	graphics_set_color(COLOR_BLACK);
-	DrawString("Queue", QUEUE_X, 0);
-	DrawRectFill(QUEUE_X, QUEUE_Y, BLOCK_SIZE * 4, BLOCK_SIZE * 4 * 5);
+	// Queue pieces
 	for(int q = 0; q < 5; q++) {
 		DrawPiece(queue[q], QUEUE_X, q * (BLOCK_SIZE*4) + QUEUE_Y, false);
 	}
-	// Hold
-	graphics_set_color(COLOR_BLACK);
-	DrawString("Hold", HOLD_X, 0);
-	DrawRectFill(HOLD_X, HOLD_Y, BLOCK_SIZE * 4, BLOCK_SIZE * 4);
+	// Hold piece
 	if(heldSomething) {
 		DrawPiece(hold, HOLD_X, HOLD_Y, false);
 	}
-	// Some info
+}
+
+void DrawGameOver() {
+	graphics_set_color(COLOR_RED);
+	DrawString("Game Over", STAGE_X, STAGE_Y + 5*BLOCK_SIZE);
+}
+
+void Draw() {
+	graphics_set_color(COLOR_BLACK);
+	// Draw stage background
+	DrawRectFill(STAGE_X, STAGE_Y, STAGE_W * BLOCK_SIZE, STAGE_H * BLOCK_SIZE);
+	// Queue background
+	DrawRectFill(QUEUE_X, QUEUE_Y, BLOCK_SIZE * 4, BLOCK_SIZE * 4 * 5);
+	// Hold background
+	DrawRectFill(HOLD_X, HOLD_Y, BLOCK_SIZE * 4, BLOCK_SIZE * 4);
+	// Game mode specific draw functions
+	switch(gameMode) {
+		case MODE_STAGE:
+		DrawStage();
+		break;
+		case MODE_GAMEOVER:
+		DrawGameOver();
+		break;
+	}
+	graphics_set_color(COLOR_BLACK);
+	// Draw the text
+	DrawString("Score: ", STAGE_X, 0);
+	DrawInt(score, STAGE_X + TextWidth("Score: ") + 96, 0);
+	DrawString("Queue", QUEUE_X, 0);
+	DrawString("Hold", HOLD_X, 0);
 	DrawString("Level:", HOLD_X, HOLD_Y + (5 * BLOCK_SIZE));
 	DrawInt(level,       HOLD_X + 64, HOLD_Y + (7 * BLOCK_SIZE));
 	DrawString("Next:",  HOLD_X, HOLD_Y + (10 * BLOCK_SIZE));
 	DrawInt(nextLevel,   HOLD_X + 64, HOLD_Y + (12 * BLOCK_SIZE));
 	DrawString("Total:", HOLD_X, HOLD_Y + (15 * BLOCK_SIZE));
 	DrawInt(totalLines,  HOLD_X + 64, HOLD_Y + (17 * BLOCK_SIZE));
-	
+	// Wait until frame time and flip the backbuffer
 	graphics_flip();
 }
