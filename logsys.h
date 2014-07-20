@@ -21,7 +21,7 @@ void log_open(const char *filename);
 void log_close();
 
 // Log simple message
-void log_msg(int level, const char *msg);
+//void log_msg(int level, const char *msg);
 
 // Log with formatting, syntax like fprintf
 void log_msgf(int level, const char *format, ...);

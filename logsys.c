@@ -25,15 +25,15 @@ void log_open(const char *filename) {
 
 void log_close() {
 	if(logfile == NULL) return;
-	log_msg(DEBUG, "Closing log file.\n");
+	log_msgf(DEBUG, "Closing log file.\n");
 	fclose(logfile);
 }
-
+/*
 void log_msg(int level, const char *msg) {
 	if(logfile == NULL || logLevel > level) return;
-	fprintf(logfile, "%s %s\n", levelStr[level], msg);
+	fprintf(logfile, "%s %s", levelStr[level], msg);
 }
-
+*/
 void log_msgf(int level, const char *format, ...) {
 	if(logfile == NULL || logLevel > level) return;
 	fprintf(logfile, "%s ", levelStr[level]);

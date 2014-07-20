@@ -138,13 +138,13 @@ void Draw();
 int main(int argc, char *argv[]) {
 	log_open("error.log");
 	Initialize();
-	log_msg(INFO, "Startup success.\n");
+	log_msgf(INFO, "Startup success.\n");
 	while(running) {
 		Update();
 		Draw();
 	}
 	graphics_quit();
-	log_msg(INFO, "Process exited cleanly.\n");
+	log_msgf(INFO, "Process exited cleanly.\n");
 	log_close();
 	return 0;
 }
