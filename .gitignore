@@ -1,0 +1,6 @@
+# Binaries
+tetris
+*.o
+
+# Runtime generated
+error.log
