@@ -496,9 +496,7 @@ void update_stage() {
 	if(blockTime >= blockSpeed) {
 		// No matter the gravity, always wait at least half a second
 		// before locking
-		if(check_lock(piece) && blockSpeed < LOCK_DELAY && !key.down) {
-			blockSpeed = LOCK_DELAY;
-		} else {
+		if(!check_lock(piece) || blockTime >= LOCK_DELAY || key.down) {
 			move_piece_down();
 		}
 	}
