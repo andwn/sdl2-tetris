@@ -1,0 +1,6 @@
+install: make sdl2 sdl2_ttf
+language: c
+script: make
+compiler:
+  - clang
+  - gcc

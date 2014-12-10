@@ -1,4 +1,4 @@
-CC=gcc
+CC?=gcc
 #CC=i686-w64-mingw32-gcc
 #CC=clang
 CFLAGS=-std=c99 -O2
@@ -17,4 +17,4 @@ clean:
 	rm $(OUTPUT)
 
 package:
-	tar cfv pf.tar $(OUTPUT) data/*
+	tar cfv sdl2-tetris.tar $(OUTPUT) data/*
