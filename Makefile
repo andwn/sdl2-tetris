@@ -1,9 +1,12 @@
 CC?=gcc
 #CC=i686-w64-mingw32-gcc
 #CC=clang
-CFLAGS=-std=c99 -O2
+
+SRC=$(wildcard *.c)
+OBJS=$(SRC:.c=.o)
+
+CFLAGS=-std=c99 -O2 -Wall
 LIBS=-lSDL2 -lSDL2_ttf
-OBJS=tetris.o input.o graphics.o logsys.o
 OUTPUT=tetris
 
 all: $(OBJS)

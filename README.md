@@ -1,4 +1,4 @@
-SDL2 Tetris
+SDL2 Tetris [![Build Status](https://travis-ci.org/aderosier/sdl2-tetris.svg?branch=master)](https://travis-ci.org/aderosier/sdl2-tetris)
 ===========
 
 A Tetris clone written in C. Most of the features from modern Tetris games
